@@ -13,7 +13,7 @@
     #mynetwork {
       position:relative;
       width: auto;
-      height: 720px;
+      height: 800px;
       border: 1px solid lightgray;
       background-color: #d1d1d1;
     }
@@ -59,7 +59,7 @@
   <script src="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.js"></script>
   <link href="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.css" rel="stylesheet" />
   <script type="text/javascript" src="https://cdn.bootcss.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="https://cdn.bootcss.com/vis/4.21.0/vis.min.js"></script>
+  <script type="text/javascript" src="https://cdn.bootcss.com/vis/4.21.0/vis.js"></script>
   
 </head>
 
@@ -219,6 +219,9 @@
           keyboard: true,           //启用键盘快捷键
           multiselect: true         //长时间点击（或触摸）以及按住Ctrl单击将添加到选择
         },
+        physics: {
+            enabled: false
+        },
 		nodes: {
 			borderWidthSelected:4, //选定节点时边框的宽度
             size: 30,
@@ -230,7 +233,8 @@
                 highlight:{border:'white'}//选中时节点边框的颜色
             },
             borderWidth: 2,
-            shadow:true
+            shadow:true,
+//            physics:false
         },
         edges: {
             selectionWidth: 3,
