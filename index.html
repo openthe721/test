@@ -132,8 +132,8 @@
         </div>
         <div class="mb-3 table-responsive" id="searchDataDiv" style="display: none"></div>
     </div>
-
     <div id="mynetwork"></div>
+
     <!-- 节点内容模态框 -->
     <div class="modal fade" id="nodeContentModal" style="top:150px;">
         <div class="modal-dialog">
@@ -147,7 +147,7 @@
                 <div class="modal-body">
                     <table class="table" style="margin:auto;">
                     <tr>
-                      <td>节点名称</td><td><input id="node-label" value="new value" onkeydown="if(event.keyCode==13) { document.getElementById('saveButton').click()}"/></td>
+                      <td>节点名称</td><td><input id="node-label" value="" onkeydown="if(event.keyCode==13) { document.getElementById('saveButton').click()}"/></td>
                     </tr>
                     <tr>
                       <td>内容</td><td><textarea id="node-content" rows="6" cols="40" onpropertychange="if(this.scrollHeight>80) this.style.posHeight=this.scrollHeight+5"></textarea></td>
@@ -217,14 +217,15 @@
       // create a network
       var container = document.getElementById('mynetwork');
       var options = {
-        layout: {}, // just to make sure the layout is the same when the locale is changed
+        layout: {randomSeed:2}, // just to make sure the layout is the same when the locale is changed
         locale: 'zh_CN',
-        clickToUse: false,
+        //clickToUse: false,
         interaction: {
           hover: true, //当鼠标移过它们时，节点使用悬停颜色
           navigationButtons: true,  //在网络画布上绘制导航按钮。这些是HTML按钮，可以使用CSS完全自定义。
           keyboard: true,           //启用键盘快捷键
           multiselect: true,         //长时间点击（或触摸）以及按住Ctrl单击将添加到选择
+          hideEdgesOnDrag: true,    //拖动视图时不绘制边缘
         },
 		nodes: {
 			borderWidthSelected:4, //选定节点时边框的宽度
@@ -238,7 +239,6 @@
             },
             borderWidth: 2,
             shadow:true
-//            physics:false
         },
         edges: {
             selectionWidth: 3,
@@ -247,6 +247,7 @@
               highlight:'white',
               hover: '#2B7CE9'
             },
+            length: 350,
             width: 2,
             hoverWidth:3,
             shadow:true,    //显示阴影
@@ -256,13 +257,26 @@
               }
             },
              smooth: {
-              type: 'continuous'
+              type: 'straightCross',
+              forceDirection: "none",
+              roundness: 0.45
             }
         },
         groups: {
            source: {
                 color:'rgba(150,150,150,0.75)'
             }
+        },
+        physics: {
+            barnesHut: {
+              gravitationalConstant: -15000,
+              centralGravity: 1.5,
+              springConstant: 0,
+              damping: 1,
+              avoidOverlap: 0.5
+            },
+            maxVelocity: 3,
+            minVelocity: 0.01
         },
         manipulation: {
 			initiallyActive: true,
@@ -273,7 +287,7 @@
 //                delete data.x
 //                delete data.y
                 data.id = new Date().getTime();
-				document.getElementById('node-label').value = data.label;
+				//document.getElementById('node-label').value = data.label;
                 document.getElementById('node-content').value = '';
 				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, 'Add', callback);
 				document.getElementById('cancelButton').onclick = clearPopUp.bind();
@@ -647,7 +661,7 @@
       }
     //导出网络图数据
     function exportNetwork() {
-        var exportValue = JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','content','x', 'y']}), edges:network.body.data.edges.get()}, null, 2)
+        var exportValue = JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','content','x', 'y']}), edges:network.body.data.edges.get()}, null, 2);
         var blob = new Blob([exportValue], {type: "" });
         saveAs(
             blob,
@@ -704,7 +718,7 @@
     function searchNetworkData() {
       var Keyword =  document.getElementById("node-search-label").value;
       if(Keyword != ""){
-        var searchData = []
+        var searchData = [];
         network.body.data.nodes.map(function (node_data){//node_data.content.search(Keyword) != -1
             if((node_data.label ? node_data.label.search(Keyword) != -1 : false) || (node_data.content ? node_data.content.search(Keyword) != -1 : false)){
               searchData.push({id: node_data.id, label: node_data.label, content:node_data.content});
