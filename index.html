@@ -22,12 +22,12 @@
       font-size:28px;
     }
     .popUp {
-      <!-- display:none; -->
-      <!-- position:absolute; -->
-      <!-- margin-left: 30%; -->
+      /*display:none;*/
+      /*position:absolute;*/
+      /*margin-left: 30%;*/
       z-index:299;
       width:500px;
-      <!-- height:auto; -->
+      /*height:auto;*/
       border-style:solid;
       border-width:3px;
       /*border-color: 1px solid #3b3b3b;*/
@@ -60,6 +60,7 @@
   <link href="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.css" rel="stylesheet" />
   <script type="text/javascript" src="https://cdn.bootcss.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="https://cdn.bootcss.com/vis/4.21.0/vis.min.js"></script>
+  <script type="text/javascript" src="MutationJS.js"></script>
   
 </head>
 
@@ -83,7 +84,7 @@
 		   <div class="webui-popover-inner">
 			<h3 id="label-title" class="webui-popover-title">label</h3>
 			<div class="webui-popover-content">
-			 <textarea class="popUp" id="popover-content"  rows="4" cols="50"></textarea>
+			 <textarea class="popUp" id="popover-content"  rows="4" cols="50" disabled></textarea>
 			</div>
 		   </div>
 		  </div>
@@ -101,9 +102,9 @@
                         <input type="file" id="import_button" style="position: absolute;opacity: 0;top: 0px;left: 0px;" onchange="importNetwork(this.files)">
                     </span>
                     <input type="button" id="export_button" class="button button-3d button-primary button-pill button-small marginButton" onclick="exportNetwork()" value="导出">
-                    <input type="button" id="redo_button" class="button button-3d button-plain button-pill button-small marginButton" onclick="redoNetwork()" value="重做">
-                    <input type="button" id="undo_button" class="button button-3d button-highlight button-pill button-small marginButton" onclick="undoNetwork()" value="撤销">
-                    <input type="button" id="save_button" class="button button-3d button-action button-pill button-small marginButton" onclick="saveNetwork()" value="保存">
+                    <input type="button" id="undo_button" class="button button-3d button-highlight button-pill button-small marginButton" onclick="mu.undo()" value="撤销" data-toggle="tooltip" title="Ctrl+Z键">
+					<input type="button" id="redo_button" class="button button-3d button-plain button-pill button-small marginButton" onclick="mu.redo()" value="恢复" data-toggle="tooltip" title="Ctrl+Y键">
+                    <input type="button" id="save_button" class="button button-3d button-action button-pill button-small marginButton" onclick="saveNetwork()" value="保存" data-toggle="tooltip" title="Ctrl+S键">
                     <input type="button" id="destory_cache_button" class="button button-3d button-caution button-pill button-small marginButton" data-toggle="modal" data-target="#confirmModal" onclick="destoryNetworkCache()" value="清除缓存">
                     <input type="button" id="destory_view_button" class="button button-3d button-royal button-pill button-small marginButton" data-toggle="modal" data-target="#confirmModal" onclick="destoryNetworkView()" value="清除视图">
 				    <i id="help" class="fas fa-question-circle" style="font-size: 40px;cursor: pointer;vertical-align: -40%;" data-trigger="hover" data-placement='auto'></i>
@@ -113,9 +114,9 @@
         </div>
 		<div class="row">
 			<div class="col-md-5 mb-3 input-group">
-			  <input type="text" id="node-search-label" class="form-control button-small" style="box-shadow: 0 7px 0 #e6e6e6, 0 8px 3px rgba(0,0,0,.3);"/>
+			  <input type="text" id="node-search-label" class="form-control button-small" style="box-shadow: 0 7px 0 #e6e6e6, 0 8px 3px rgba(0,0,0,.3);" onkeydown="if(event.keyCode==13) {searchNetworkData()}"/>
 			  <div class="input-group-append">
-				<input type="button" id="search_button" class="button button-3d button-plain button-small" onclick="searchNetworkData()" value="搜索">
+				<input type="button" id="search_button" class="button button-3d button-plain button-small" onclick="searchNetworkData()" value="搜索"  data-toggle="tooltip" title="输入内容后按回车键可搜索">
 				<input type="button" id="revoke_button" class="button button-3d button-royal button-small" onclick="clearSearchResult()" value="清除搜索">
 			  </div>
 			</div>
@@ -184,7 +185,6 @@
 </body>
 
 <script type="text/javascript">
-    var nodes_data = [];
     var network = null;
     // randomly create some nodes and edges
     var seed = 2;              //分布布局配置
@@ -192,14 +192,18 @@
     var isHighlight = false;  //是否高亮显示选择节点关联
     var curSelectNode = null; //当前选中的节点
     var timerVar = null;       //自动保存网络数据标志位
-    var curhoverNode = null;      //当前悬浮节点
-	var savehoverNode = null;	  //开启定时器保存的悬浮节点
+    var curhoverNode = null;   //当前悬浮节点
+	var savehoverNode = null;	//开启定时器保存的悬浮节点
+	//list这个变量保存了用户的操作;
+    var actionList = [];
+	//保存Mutation操作实例
+	var	mu = null;
     //提示信息配置
 	toastr.options = {
         "positionClass": "toast-top-right",
         "showDuration": "1500"
     };
-
+	
     function destroy() {
       if (network !== null) {
         network.destroy();
@@ -264,52 +268,66 @@
 			addNode: function (data, callback) {
 				// filling in the popup DOM elements
 				document.getElementById('operation').innerHTML = "添加节点";
-//				document.getElementById('node-id').value = data.id;
                 //删除x、y坐标数据
 //                delete data.x
 //                delete data.y
-                data.id = new Date().getTime()
+                data.id = new Date().getTime();
 				document.getElementById('node-label').value = data.label;
                 document.getElementById('node-content').value = '';
-				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, callback);
+				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, 'Add', callback);
 				document.getElementById('cancelButton').onclick = clearPopUp.bind();
-                $('#nodeContentModal').modal('show')
-				//document.getElementById('network-popUp').style.display = 'block';
+                $('#nodeContentModal').modal('show');
+			},
+            addEdge: function (data, callback) {
+				if (data.from == data.to) {
+                    var r = confirm("要将节点连接到自己吗？");
+                    if (r == true) {
+                        callback(data);
+                    }
+				}
+				else if(network.body.data.edges.get({filter: function (item) {return item.from == data.from && item.to == data.to;}}).length == 1){
+					alert("已有相同连接线！");
+				}
+				else {
+                    data.id = new Date().getTime();
+                    network.body.data.edges.add([data]);
+                    //保存用户操作数据
+                    mu.save('Add',{edges:[data]});
+				}
 			},
 			editNode: function (data, callback) {
 				// filling in the popup DOM elements
 				document.getElementById('operation').innerHTML = "编辑节点";
 				document.getElementById('node-label').value = data.label;
                 document.getElementById('node-content').value = data.content || '';
-				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, callback);
+				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, 'Edit', callback);
 				document.getElementById('cancelButton').onclick = cancelEdit.bind(this,callback);
-                $('#nodeContentModal').modal('show')
-				//document.getElementById('network-popUp').style.display = 'block';
+                $('#nodeContentModal').modal('show');
 			},
-			addEdge: function (data, callback) {
-				if (data.from == data.to) {
-				  var r = confirm("要将节点连接到自己吗？");
-				  if (r == true) {
-					callback(data);
-				  }
-				}
-				else {
-//				  callback(data);
-                  data.id = new Date().getTime()
-                  network.body.data.edges.add([data]);
-				}
-			}
-//          deleteNode: function (data, callback) {
-//              callback(data);
-//              nodes_data._data = Object.values(nodes_data._data).sort();
-//          }
+			editEdge: function (data, callback) {
+				// filling in the popup DOM elements
+				//保存用户操作数据
+                var oldEdgeData = {};
+                $.extend(true,oldEdgeData,network.body.data.edges._data[data.id]);
+                mu.save('Edit',{undo: {edges:[oldEdgeData]},redo:{edges:[data]}});
+                callback(data);
+			},
+			deleteNode: function (data, callback) {
+				//保存用户操作数据
+				deleteNetworkData(data);
+				callback(data);
+			},
+			deleteEdge: function (data, callback) {
+				//保存用户操作数据
+				deleteNetworkData(data);
+				callback(data);
+			},
         }
       };
 
       network = new vis.Network(container, JSON.parse(localData.get('networkData') || '{"nodes": [],"edges": []}'), options);
-//      nodes_data = network.body.data.nodes;
-//      edges_data = network.body.data.edges;
-
+      mu = new nono.MutationJs(actionList, network);
+		
       //鼠标点击事件
       network.on("click", function (params) {
         //如果未选择节点，点击空白处，则取消高亮
@@ -346,13 +364,14 @@
       //鼠标悬停在节点上弹出框
 	  network.on("hoverNode", function (params) {
 		curhoverNode = params.node;
-		if(savehoverNode == null){
+		//非编辑模式才允许显示弹出框
+		if(savehoverNode == null && !network.manipulation.inMode){
 			savehoverNode = params.node;
 			setTimeout(function () {
-				if(curhoverNode == savehoverNode){
+				if(curhoverNode == savehoverNode && !network.manipulation.inMode){
 					var hove_output = document.getElementById('hover-popUp');
 					document.getElementById('popover-content').value = network.body.data.nodes._data[params.node].content || '';
-					document.getElementById('label-title').innerHTML = network.body.data.nodes._data[params.node].label;
+					document.getElementById('label-title').innerHTML = network.body.data.nodes._data[params.node].label || '';
 
 					//获取鼠标位置函数
 					var mousePos = mousePosition(params.event);
@@ -385,13 +404,13 @@
       //双击节点 隐藏或者显示子节点
       network.on("doubleClick", function (params) {
           if ( params.nodes.length == 0 && params.edges.length ==1 && !isCtrlDown) { // 双击的是关联
-              var edgesData = network.body.data.edges._data[params.edges[0]]
+              var edgesData = network.body.data.edges._data[params.edges[0]];
               //将from和to节点添加不需要遍历获取节点列表中
               var _allChild = getAllChilds(network,edgesData.to,[edgesData.from, edgesData.to], 'all');
               //移除from和to节点，不隐藏
-              _allChild.remove(edgesData.from)
-              _allChild.remove(edgesData.to)
-			  var nodes = []
+              _allChild.remove(edgesData.from);
+              _allChild.remove(edgesData.to);
+			  var nodes = [];
               if(_allChild.length > 0 ){ // 存在子节点
                   var hidden_temp = undefined || network.body.data.nodes._data[_allChild[_allChild.length-1]].hidden
                   if( hidden_temp == false || hidden_temp == undefined){
@@ -425,28 +444,57 @@
       callback(null);
     }
 
-    //保存编辑
-    function saveNodeIdData(data,callback) {
-      data.label = document.getElementById('node-label').value;
-      data.content = document.getElementById('node-content').value;
-      clearPopUp();
-      $('#nodeContentModal').modal('hide')
-      callback(data);
+    //保存节点数据编辑
+    function saveNodeIdData(data,operation,callback) {
+        var oldNodeData = {};
+        $.extend(true,oldNodeData,data);
+		data.label = document.getElementById('node-label').value;
+		data.content = document.getElementById('node-content').value;
+		//保存用户操作数据
+        if(operation == 'Add')
+		    mu.save(operation,{nodes:[data]});
+        else if(operation == 'Edit'){
+            mu.save(operation,{undo: {nodes:[oldNodeData]},redo:{nodes:[data]}});
+        }
+		clearPopUp();
+		$('#nodeContentModal').modal('hide');
+		callback(data);
     }
-
+	
+	function deleteNetworkData(data){
+		//保存用户操作数据
+		var nodes = [];
+		if(data.nodes){
+			for(var i=0, len=data.nodes.length;i<len;i++){
+				nodes.push(network.body.data.nodes._data[data.nodes[i]]);
+			}
+		}
+		var edges = [];
+		if(data.nodes){
+			for(var i=0, len=data.edges.length;i<len;i++){
+				edges.push(network.body.data.edges.get(data.edges[i]));
+			}
+		}
+		mu.save('Delete',{nodes:nodes,edges:edges});
+	}
+	
+	//初始化
     function init() {
-      draw();
+        draw();
+        document.getElementById('model-name-label').value = localData.get('modelName') || '新模型'
     }
 	
 	//帮助提示信息
 	$(function (){
 		var content = "<p>TAB键：选择节点，按TAB键可以新建节点。</p>" +
 		"<p>Ctrl+S键：保存当前视图数据。</p>" +
+		"<p>Ctrl+Z键：撤销当前操作。</p>" +
+		"<p>Ctrl+Y键：恢复前一次操作。</p>" +
 		"<p>ESC键：取消编辑模式。</p>" +
         "<p>DELETE键：删除选中的节点或连接线。</p>" +
         "<p>Ctrl键：按住Ctrl单击节点或连接线可以进行多选。</p>" +
         "<p>双击节点：可以编辑节点内容。</p>" +
-        "<p>双击连接线：可以进行连接线拖动。</p>" +
+        "<p>双击连接线：可以进行连接线拖动，以及收缩连接线指向方向的所有节点。</p>" +
         "<p>点击搜索结果：可以将视图聚焦到该节点上。</p>" +
         "<p style='color: #c9302c'>注意：</p>" +
 		"<p style='color: #c9302c'>1、目前只是将数据永久存储在浏览器缓存中。</p>" +
@@ -505,10 +553,19 @@
             //按下TAB键,添加节点和关联
             if(e && e.keyCode == 9){
                 var newId = new Date().getTime();
-                network.body.data.nodes.add({id:newId, label:"new"});
+				var nodes = {id:newId, label:"new", content:""};
+                network.body.data.nodes.add(nodes);
+				var Positions = network.getPositions(newId)[newId];
+				nodes.x = Positions.x;
+				nodes.y = Positions.y;
+				network.body.data.nodes.update(nodes);
+				var edges = null;
                 if(curSelectNode){
-                  network.body.data.edges.add({id: new Date().getTime(), from: curSelectNode, to: newId})
+					edges = [{id: new Date().getTime(), from: curSelectNode, to: newId}];
+					network.body.data.edges.add(edges);
                 }
+				//保存用户操作数据
+				mu.save('Add',{nodes:[nodes], edges:edges});
             }
             //按下DELETE键
             if (e && e.keyCode == 46) {
@@ -524,9 +581,13 @@
 
                 }
             }
-            //按下Ctrl+Z键
+            //按下Ctrl+Z键 撤销操作
             if (e && e.ctrlKey && e.keyCode == 90) {
-
+				mu.undo();
+            }
+			//按下Ctrl+Y键 恢复操作
+            if (e && e.ctrlKey && e.keyCode == 89) {
+				mu.redo();
             }
             //按下Ctrl+S键
             if (e && e.ctrlKey && e.keyCode == 83) {
@@ -546,43 +607,42 @@
       };
       //节点全部高亮显示
       function allHighlight(nodes) {
-		<!-- var date1=new Date();  //开始时间 -->
-		var nodes = []
+//		var date1=new Date();  //开始时间
+		var nodes = [];
 		//先将所有节点置为蓝色
 		for(var i=0, len=network.body.nodeIndices.length;i<len;i++){
 			nodes.push({id:network.body.nodeIndices[i], hidden:false, group: 0});
 		}
 		network.body.data.nodes.update(nodes);
-		<!-- var date2=new Date();    //结束时间 -->
-		<!-- console.log((date2.getTime()-date1.getTime())/1000); -->
+//		var date2=new Date();    //结束时间
+//		console.log((date2.getTime()-date1.getTime())/1000);
 		isHighlight = false;
       }
       //选择节点时高亮显示关系
       function selectHighLight(nodeId) {
         if ( nodeId != undefined && !isCtrlDown) { // 选择的是节点
-              curSelectNode = nodeId;
-              var _allChild = network.getConnectedNodes(curSelectNode);
-//              if(_allChild.length >= 0 ){ // 存在子节点
-				var nodes = []
-				//先将所有节点置为灰色
-				for(var i=0, len=network.body.nodeIndices.length;i<len;i++){
-					nodes.push({id:network.body.nodeIndices[i], group: 'source'});
-				}
-				network.body.data.nodes.update(nodes);
-				isHighlight = true;
-				nodes = []
-				//再将选择的节点置为蓝色
-				for(var i=0, len=_allChild.length;i<len;i++){
-					nodes.push({id:_allChild[i], group: 0});
-				}
-				//单击的节点不能被隐藏
-				nodes.push({id:curSelectNode, group: 0});
-				network.body.data.nodes.update(nodes);
+			curSelectNode = nodeId;
+			var _allChild = network.getConnectedNodes(curSelectNode);
+			var nodes = [];
+			//先将所有节点置为灰色
+			for(var i=0, len=network.body.nodeIndices.length;i<len;i++){
+				nodes.push({id:network.body.nodeIndices[i], group: 'source'});
+			}
+			network.body.data.nodes.update(nodes);
+			isHighlight = true;
+			nodes = [];
+			//再将选择的节点置为蓝色
+			for(var i=0, len=_allChild.length;i<len;i++){
+				nodes.push({id:_allChild[i], group: 0});
+			}
+			//单击的节点不能被隐藏
+			nodes.push({id:curSelectNode, group: 0});
+			network.body.data.nodes.update(nodes);
         }
       }
     //导出网络图数据
     function exportNetwork() {
-        var exportValue = JSON.stringify({nodes:reduceNodesDara(network.body.data.nodes._data), edges:Object.values(network.body.data.edges._data)}, null, 2)
+        var exportValue = JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','x', 'y']}), edges:network.body.data.edges.get()}, null, 2)
         var blob = new Blob([exportValue], {type: "" });
         saveAs(
             blob,
@@ -592,29 +652,29 @@
     //导入网络图
     function importNetwork(files) {
         if (files.length) {
-          var file = files[0];
-          var reader = new FileReader();
-          if (/json+/.test(file.name)){
-            //将文件读取为文本
-            reader.readAsText(file);
-            reader.onload = function(evt){
-              //console.log(reader.result);
-              var test = document.getElementById('import_button');
-              test.value = '';
-              var inputData = JSON.parse(reader.result);			
-              setThedata(inputData.nodes, inputData.edges)
-			  
+            var file = files[0];
+            var reader = new FileReader();
+            if (/json+/.test(file.name)){
+                //将文件读取为文本
+                reader.readAsText(file);
+                reader.onload = function(evt){
+                    //console.log(reader.result);
+                    var test = document.getElementById('import_button');
+                    test.value = '';
+                    var inputData = JSON.parse(reader.result);
+                    setThedata(inputData.nodes, inputData.edges);
+                    document.getElementById('model-name-label').value = file.name.split('.')[0];
+                }
             }
-          }
-		  else{
-			toastr.info('请选择json后缀文件！');
-		  }
+            else{
+                toastr.info('请选择json后缀文件！');
+            }
         }
     }
 
     //是否开启自动保存网络数据功能
     function isAutoSaveData(){
-      var isOpen = document.getElementById("autoSave_checkbox")
+      var isOpen = document.getElementById("autoSave_checkbox");
       if(isOpen.checked){
         timerVar=setInterval(saveNetwork,10000);
       }else {
@@ -625,14 +685,14 @@
 
     //保存网络图数据
     function saveNetwork() {
-      var curStatus = localData.set('networkData', JSON.stringify({nodes:reduceNodesDara(network.body.data.nodes._data), edges:Object.values(network.body.data.edges._data)}, null, 2));
-      var status_content = document.getElementById('status_content');
-      if (curStatus){
-          toastr.success('保存成功');
-      }
-      else {
-          toastr.error('保存成功');
-      }
+        var dataStatus = localData.set('networkData', JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','x', 'y']}), edges:network.body.data.edges.get()}, null, 2));
+        var nameStatus = localData.set('modelName', document.getElementById('model-name-label').value);
+        if (dataStatus && nameStatus){
+            toastr.success('保存成功');
+        }
+        else {
+            toastr.error('保存失败');
+        }
     }
 
     //搜索网络图数据
@@ -645,6 +705,11 @@
               searchData.push({id: node_data.id, label: node_data.label});
             }
         });
+		var searchDataDiv = document.getElementById("searchDataDiv");
+		searchDataDiv.innerHTML = "";
+		var h5Node=document.createElement("h5"); //获得对象
+		h5Node.innerHTML = '正在搜索，请耐心等待...';
+		searchDataDiv.appendChild(h5Node);
         if (searchData.length != 0){
             var rows = null; //列表行数
             var cols = 15;   //列表列数
@@ -676,14 +741,13 @@
                     curCount += 1;
                 }
             }
-            var searchDataDiv = document.getElementById("searchDataDiv");
-            searchDataDiv.innerHTML = "";
-            var h5Node=document.createElement("h5"); //获得对象
             h5Node.innerHTML = '搜索结果：';
-            searchDataDiv.appendChild(h5Node);
             searchDataDiv.appendChild(tableNode); //添加到那个位置
-            searchDataDiv.style.display = 'block'
-            }
+        }
+		else{
+            h5Node.innerHTML = '无 ' + '<span style="color: red">' + Keyword + '</span>' + ' 搜索结果';  
+		}
+		searchDataDiv.style.display = 'block'
       }
     }
 
@@ -708,12 +772,18 @@
     function setThedata(nodes, edges) {
 	
 		try {
-			//清空网络图数据
-			network.body.data.nodes.clear();
-			network.body.data.edges.clear();
-			//添加网络图数据
-			network.body.data.nodes.add(nodes);
-			network.body.data.edges.add(edges);
+			if(nodes){
+				//清空网络图数据
+				network.body.data.nodes.clear();
+				//添加网络图数据
+				network.body.data.nodes.add(nodes);
+			}
+			if(edges){
+				//清空网络图数据
+				network.body.data.edges.clear();
+				//添加网络图数据
+				network.body.data.edges.add(edges);
+			}
 			return true;
 		} catch (ex) {
 			return false;
@@ -721,17 +791,7 @@
 		
         
     }
-
-    //精简nodes节点集数据
-    function reduceNodesDara(nodes) {
-        nodes_data = [];
-        $.each(nodes,function (key) {
-            var node = nodes[key];
-            nodes_data.push({id:node.id, label:node.label, x:node.x, y:node.y});
-         });
-        return nodes_data
-    }
-    
+	
 	//清除缓存数据
     function destoryNetworkCache() {
 		document.getElementById('confirmButton').onclick = function (){
