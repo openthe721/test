@@ -52,12 +52,13 @@
   <link href="https://cdn.bootcss.com/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
   <link rel="stylesheet" href="https://cdn.bootcss.com/Buttons/2.0.0/css/buttons.min.css">
   <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.1.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css"  integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
   <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
   <link href="https://cdn.bootcss.com/toastr.js/latest/css/toastr.min.css" rel="stylesheet" />
   <script src="https://cdn.bootcss.com/toastr.js/latest/js/toastr.min.js"></script>
   <script src="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.js"></script>
   <link href="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.css" rel="stylesheet" />
+  <script src="https://cdn.bootcss.com/popper.js/1.12.5/umd/popper.min.js"></script>
   <script type="text/javascript" src="https://cdn.bootcss.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="https://cdn.bootcss.com/vis/4.21.0/vis.min.js"></script>
   <script type="text/javascript" src="MutationJS.js"></script>
@@ -146,7 +147,7 @@
                 <div class="modal-body">
                     <table class="table" style="margin:auto;">
                     <tr>
-                      <td>节点名称</td><td><input id="node-label" value="new value" autofocus/></td>
+                      <td>节点名称</td><td><input id="node-label" value="new value" onkeydown="if(event.keyCode==13) { document.getElementById('saveButton').click()}"/></td>
                     </tr>
                     <tr>
                       <td>内容</td><td><textarea id="node-content" rows="6" cols="40" onpropertychange="if(this.scrollHeight>80) this.style.posHeight=this.scrollHeight+5"></textarea></td>
@@ -436,13 +437,16 @@
     function clearPopUp() {
       document.getElementById('saveButton').onclick = null;
       document.getElementById('cancelButton').onclick = null;
-      //document.getElementById('network-popUp').style.display = 'none';
     }
     //取消编辑
     function cancelEdit(callback) {
       clearPopUp();
       callback(null);
     }
+
+    $('#nodeContentModal').on('shown.bs.modal',function(e){
+        $('#node-label').focus(); //通过ID找到对应输入框，让其获得焦点
+    });
 
     //保存节点数据编辑
     function saveNodeIdData(data,operation,callback) {
@@ -500,6 +504,7 @@
 		"<p style='color: #c9302c'>1、目前只是将数据永久存储在浏览器缓存中。</p>" +
 		"<p style='color: #c9302c'>2、清空缓存前，建议导出数据进行保存！</p>";
         $('#help').webuiPopover({title:"帮助",content:content,style:"inverse",width:"auto"});
+        $('[data-toggle="tooltip"]').tooltip();
     });
 	
 	 /*
@@ -642,7 +647,7 @@
       }
     //导出网络图数据
     function exportNetwork() {
-        var exportValue = JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','x', 'y']}), edges:network.body.data.edges.get()}, null, 2)
+        var exportValue = JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','content','x', 'y']}), edges:network.body.data.edges.get()}, null, 2)
         var blob = new Blob([exportValue], {type: "" });
         saveAs(
             blob,
@@ -685,7 +690,7 @@
 
     //保存网络图数据
     function saveNetwork() {
-        var dataStatus = localData.set('networkData', JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','x', 'y']}), edges:network.body.data.edges.get()}, null, 2));
+        var dataStatus = localData.set('networkData', JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','content','x', 'y']}), edges:network.body.data.edges.get()}, null, 2));
         var nameStatus = localData.set('modelName', document.getElementById('model-name-label').value);
         if (dataStatus && nameStatus){
             toastr.success('保存成功');
@@ -702,7 +707,7 @@
         var searchData = []
         network.body.data.nodes.map(function (node_data){//node_data.content.search(Keyword) != -1
             if((node_data.label ? node_data.label.search(Keyword) != -1 : false) || (node_data.content ? node_data.content.search(Keyword) != -1 : false)){
-              searchData.push({id: node_data.id, label: node_data.label});
+              searchData.push({id: node_data.id, label: node_data.label, content:node_data.content});
             }
         });
 		var searchDataDiv = document.getElementById("searchDataDiv");
@@ -735,6 +740,9 @@
                     }
                     var tdNode=trNode.insertCell();
                     tdNode.style.cursor = 'pointer';
+                    tdNode.setAttribute("data-toggle","tooltip");
+                    var content = searchData[curCount].content
+                    tdNode.setAttribute("title","<p align='left'>" + content.replace(/\n/g,'<br>').replace(new RegExp(Keyword, "g"),'<strong style="color: red">' + Keyword + '</strong>') + "</p>");
                     tdNode.innerHTML=searchData[curCount].label;
                     tdNode.onclick = focusNodeId.bind();
                     tdNode.value = searchData[curCount].id;
@@ -747,7 +755,8 @@
 		else{
             h5Node.innerHTML = '无 ' + '<span style="color: red">' + Keyword + '</span>' + ' 搜索结果';  
 		}
-		searchDataDiv.style.display = 'block'
+		searchDataDiv.style.display = 'block';
+        $('[data-toggle="tooltip"]').tooltip({html:true, placement:'bottom'});
       }
     }
 
