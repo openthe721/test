@@ -1,0 +1,935 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <!--解决手机上的显示问题-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试建模</title>
+  <style type="text/css">
+    body, select {
+      font: 10pt sans;
+      background-color: #f8f9fa!important;
+    }
+    #mynetwork {
+      position:relative;
+      width: auto;
+      height: 800px;
+      border: 1px solid lightgray;
+      background-color: #d1d1d1;
+    }
+
+    #operation {
+      font-size:28px;
+    }
+    .popUp {
+      /*display:none;*/
+      /*position:absolute;*/
+      /*margin-left: 30%;*/
+      z-index:299;
+      width:500px;
+      /*height:auto;*/
+      border-style:solid;
+      border-width:3px;
+      /*border-color: 1px solid #3b3b3b;*/
+      padding:10px;
+      text-align: left;
+      font-size: 18px;
+	  color: #fff;
+	  background-color: #333;
+	  border-radius: .25rem;
+    }
+    .marginButton {
+        margin: 5px !important;
+    }
+    .custom-control-label::before {
+        top: .75rem !important;
+    }
+    .custom-control-label::after {
+        top: .75rem !important;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.bootcss.com/FileSaver.js/2014-11-29/FileSaver.min.js"></script>
+  <link href="https://cdn.bootcss.com/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.bootcss.com/Buttons/2.0.0/css/buttons.min.css">
+  <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.1.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css"  integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
+  <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+  <link href="https://cdn.bootcss.com/toastr.js/latest/css/toastr.min.css" rel="stylesheet" />
+  <script src="https://cdn.bootcss.com/toastr.js/latest/js/toastr.min.js"></script>
+  <script src="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.js"></script>
+  <link href="https://cdn.bootcss.com/webui-popover/2.1.15/jquery.webui-popover.min.css" rel="stylesheet" />
+  <script src="https://cdn.bootcss.com/popper.js/1.12.5/umd/popper.min.js"></script>
+  <script type="text/javascript" src="https://cdn.bootcss.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://cdn.bootcss.com/vis/4.21.0/vis.min.js"></script>
+  <script type="text/javascript" src="MutationJS.js"></script>
+  
+</head>
+
+<body onload="init();">
+    <br>		
+	<div class="container-fluid">
+        <!--鼠标悬浮节点弹出框-->
+        <!-- <textarea class="popUp" id="hover-popUp"  rows="4" cols="50" data-toggle="popover" data-trigger="hover" data-content="一些内容"></textarea> -->
+		<!-- <div class="webui-popover bottom in" id="hover-popUp" style="display: node;"> -->
+		   <!-- <div class="arrow"></div> -->
+		   <!-- <div class="webui-popover-inner"> -->
+			<!-- <button type="button" class="close" data-dismiss="modal">&times;</button> -->
+			<!-- <h2 id="label-title" class="webui-popover-title"></h2> -->
+			<!-- <div class="webui-popover-content">  -->
+				<!-- <textarea class="popUp" id="popover-content"  rows="5" cols="50"></textarea> -->
+			<!-- </div> -->
+		   <!-- </div> -->
+		  <!-- </div> -->
+		  <div class="webui-popover webui-popover-inverse right" id="hover-popUp" style="display: none;opacity: 0.9;position:absolute;">
+		   <div class="webui-arrow" style="top: 38.5px;"></div>
+		   <div class="webui-popover-inner">
+			<h3 id="label-title" class="webui-popover-title">label</h3>
+			<div class="webui-popover-content">
+			 <textarea class="popUp" id="popover-content"  rows="4" cols="50" disabled></textarea>
+			</div>
+		   </div>
+		  </div>
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-md-3 mb-3 input-group">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">模型名称:</span>
+                    </div>
+                    <input type="text" id="model-name-label" class="form-control" value="新模型"/>			
+                </div>
+                <div class="col-md-8 mb-3">
+                    <span class="button button-3d button-inverse button-pill button-small marginButton" style="position: relative;">
+                        <span>导入</span>
+                        <input type="file" id="import_button" style="position: absolute;opacity: 0;top: 0px;left: 0px;" onchange="importNetwork(this.files)">
+                    </span>
+                    <input type="button" id="export_button" class="button button-3d button-primary button-pill button-small marginButton" onclick="exportNetwork()" value="导出">
+                    <input type="button" id="undo_button" class="button button-3d button-highlight button-pill button-small marginButton" onclick="mu.undo()" value="撤销" data-toggle="tooltip" title="Ctrl+Z键">
+					<input type="button" id="redo_button" class="button button-3d button-plain button-pill button-small marginButton" onclick="mu.redo()" value="恢复" data-toggle="tooltip" title="Ctrl+Y键">
+                    <input type="button" id="save_button" class="button button-3d button-action button-pill button-small marginButton" onclick="saveNetwork()" value="保存" data-toggle="tooltip" title="Ctrl+S键">
+                    <input type="button" id="destory_cache_button" class="button button-3d button-caution button-pill button-small marginButton" data-toggle="modal" data-target="#confirmModal" onclick="destoryNetworkCache()" value="清除缓存">
+                    <input type="button" id="destory_view_button" class="button button-3d button-royal button-pill button-small marginButton" data-toggle="modal" data-target="#confirmModal" onclick="destoryNetworkView()" value="清除视图">
+				    <i id="help" class="fas fa-question-circle" style="font-size: 40px;cursor: pointer;vertical-align: -40%;" data-trigger="hover" data-placement='auto'></i>
+                </div>
+
+            </div>
+        </div>
+		<div class="row">
+			<div class="col-md-5 mb-3 input-group">
+			  <input type="text" id="node-search-label" class="form-control button-small" style="box-shadow: 0 7px 0 #e6e6e6, 0 8px 3px rgba(0,0,0,.3);" onkeydown="if(event.keyCode==13) {searchNetworkData()}"/>
+			  <div class="input-group-append">
+				<input type="button" id="search_button" class="button button-3d button-plain button-small" onclick="searchNetworkData()" value="搜索"  data-toggle="tooltip" title="输入内容后按回车键可搜索">
+				<input type="button" id="revoke_button" class="button button-3d button-royal button-small" onclick="clearSearchResult()" value="清除搜索">
+			  </div>
+			</div>
+            <div  class="col-md-3 mb-3 custom-control custom-checkbox">
+                <input id="autoSave_checkbox" type="checkbox" class="custom-control-input" style="vertical-align: -35%;" onchange="isAutoSaveData()">
+                <label class="custom-control-label" style="vertical-align: -35%;" for="autoSave_checkbox">是否自动保存</label>
+            </div>
+		</div>
+		
+        <div class="mb-3">
+            <span id="status_content" style="font-size: 18px;font-weight:bold;"></span>
+        </div>
+        <div class="mb-3 table-responsive" id="searchDataDiv" style="display: none"></div>
+    </div>
+
+    <div id="mynetwork"></div>
+    <!-- 节点内容模态框 -->
+    <div class="modal fade" id="nodeContentModal" style="top:150px;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- 模态框头部 -->
+                <div class="modal-header">
+                    <h4 id="operation" class="modal-title">模态框头部</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+            <!-- 模态框主体 -->
+                <div class="modal-body">
+                    <table class="table" style="margin:auto;">
+                    <tr>
+                      <td>节点名称</td><td><input id="node-label" value="new value" onkeydown="if(event.keyCode==13) { document.getElementById('saveButton').click()}"/></td>
+                    </tr>
+                    <tr>
+                      <td>内容</td><td><textarea id="node-content" rows="6" cols="40" onpropertychange="if(this.scrollHeight>80) this.style.posHeight=this.scrollHeight+5"></textarea></td>
+                    </tr>
+                  </table>
+                </div>
+                <!-- 模态框底部 -->
+                <div class="modal-footer">
+                    <button type="button" id="saveButton" class="btn btn-primary">保存</button>
+                    <button type="button" id="cancelButton" class="btn btn-default" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+	<!-- 确认框模态框 -->
+    <div class="modal fade" id="confirmModal" style="top:150px;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- 模态框头部 -->
+                <div class="modal-header">
+                    <h4 class="modal-title">提示</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+            <!-- 模态框主体 -->
+                <div class="modal-body">
+                    确定执行此操作吗？
+                </div>
+                <!-- 模态框底部 -->
+                <div class="modal-footer">
+                    <button type="button" id="confirmButton" class="btn btn-danger">确定</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    var network = null;
+    // randomly create some nodes and edges
+    var seed = 2;              //分布布局配置
+    var isCtrlDown = false;   //Ctrl键是否按下
+    var isHighlight = false;  //是否高亮显示选择节点关联
+    var curSelectNode = null; //当前选中的节点
+    var timerVar = null;       //自动保存网络数据标志位
+    var curhoverNode = null;   //当前悬浮节点
+	var savehoverNode = null;	//开启定时器保存的悬浮节点
+	//list这个变量保存了用户的操作;
+    var actionList = [];
+	//保存Mutation操作实例
+	var	mu = null;
+    //提示信息配置
+	toastr.options = {
+        "positionClass": "toast-top-right",
+        "showDuration": "1500"
+    };
+	
+    function destroy() {
+      if (network !== null) {
+        network.destroy();
+        network = null;
+      }
+    }
+    function draw() {
+      destroy();
+
+      // create a network
+      var container = document.getElementById('mynetwork');
+      var options = {
+        layout: {}, // just to make sure the layout is the same when the locale is changed
+        locale: 'zh_CN',
+        clickToUse: false,
+        interaction: {
+          hover: true, //当鼠标移过它们时，节点使用悬停颜色
+          navigationButtons: true,  //在网络画布上绘制导航按钮。这些是HTML按钮，可以使用CSS完全自定义。
+          keyboard: true,           //启用键盘快捷键
+          multiselect: true,         //长时间点击（或触摸）以及按住Ctrl单击将添加到选择
+        },
+		nodes: {
+			borderWidthSelected:4, //选定节点时边框的宽度
+            size: 30,
+            font: {
+                size: 32,
+                color: '#ffffff'
+            },
+            color:{
+                highlight:{border:'white'}//选中时节点边框的颜色
+            },
+            borderWidth: 2,
+            shadow:true
+//            physics:false
+        },
+        edges: {
+            selectionWidth: 3,
+            color:{
+              color:'#2B7CE9',
+              highlight:'white',
+              hover: '#2B7CE9'
+            },
+            width: 2,
+            hoverWidth:3,
+            shadow:true,    //显示阴影
+            arrows: {
+              to: {
+                enabled: true   //开启方向箭头
+              }
+            },
+             smooth: {
+              type: 'continuous'
+            }
+        },
+        groups: {
+           source: {
+                color:'rgba(150,150,150,0.75)'
+            }
+        },
+        manipulation: {
+			initiallyActive: true,
+			addNode: function (data, callback) {
+				// filling in the popup DOM elements
+				document.getElementById('operation').innerHTML = "添加节点";
+                //删除x、y坐标数据
+//                delete data.x
+//                delete data.y
+                data.id = new Date().getTime();
+				document.getElementById('node-label').value = data.label;
+                document.getElementById('node-content').value = '';
+				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, 'Add', callback);
+				document.getElementById('cancelButton').onclick = clearPopUp.bind();
+                $('#nodeContentModal').modal('show');
+			},
+            addEdge: function (data, callback) {
+				if (data.from == data.to) {
+                    var r = confirm("要将节点连接到自己吗？");
+                    if (r == true) {
+                        callback(data);
+                    }
+				}
+				else if(network.body.data.edges.get({filter: function (item) {return item.from == data.from && item.to == data.to;}}).length == 1){
+					alert("已有相同连接线！");
+				}
+				else {
+                    data.id = new Date().getTime();
+                    network.body.data.edges.add([data]);
+                    //保存用户操作数据
+                    mu.save('Add',{edges:[data]});
+				}
+			},
+			editNode: function (data, callback) {
+				// filling in the popup DOM elements
+				document.getElementById('operation').innerHTML = "编辑节点";
+				document.getElementById('node-label').value = data.label;
+                document.getElementById('node-content').value = data.content || '';
+				document.getElementById('saveButton').onclick = saveNodeIdData.bind(this, data, 'Edit', callback);
+				document.getElementById('cancelButton').onclick = cancelEdit.bind(this,callback);
+                $('#nodeContentModal').modal('show');
+			},
+			editEdge: function (data, callback) {
+				// filling in the popup DOM elements
+				//保存用户操作数据
+                var oldEdgeData = {};
+                $.extend(true,oldEdgeData,network.body.data.edges._data[data.id]);
+                mu.save('Edit',{undo: {edges:[oldEdgeData]},redo:{edges:[data]}});
+                callback(data);
+			},
+			deleteNode: function (data, callback) {
+				//保存用户操作数据
+				deleteNetworkData(data);
+				callback(data);
+			},
+			deleteEdge: function (data, callback) {
+				//保存用户操作数据
+				deleteNetworkData(data);
+				callback(data);
+			},
+        }
+      };
+
+      network = new vis.Network(container, JSON.parse(localData.get('networkData') || '{"nodes": [],"edges": []}'), options);
+      mu = new nono.MutationJs(actionList, network);
+		
+      //鼠标点击事件
+      network.on("click", function (params) {
+        //如果未选择节点，点击空白处，则取消高亮
+        if (isHighlight && params.nodes.length == 0){
+          allHighlight(network.body.data.nodes);
+          curSelectNode = null;
+        }
+        //点击空白或节点，关闭鼠标悬浮节点上弹出框
+        document.getElementById('hover-popUp').style.display = 'none';
+      });
+
+      //单击节点
+	  network.on("selectNode", function (params) {
+		curhoverNode = null;
+		selectHighLight(params.nodes[0]);
+      });
+
+      //拖动节点或视图时
+	  network.on("dragging", function (params) {
+        //console.log('selectNode Event:', params);
+		curhoverNode = null;
+		selectHighLight(params.nodes[0]);
+      });
+      
+	  //拖动节点完成时
+	  network.on("dragEnd", function (params) {
+          if(params.nodes.length != 0){
+            var  nodeId = params.nodes[0];
+            var Positions = network.getPositions(nodeId)[nodeId];
+            network.body.data.nodes.update([{id:nodeId, x:Positions.x, y:Positions.y}]);
+          }
+      });
+
+      //鼠标悬停在节点上弹出框
+	  network.on("hoverNode", function (params) {
+		curhoverNode = params.node;
+		//非编辑模式才允许显示弹出框
+		if(savehoverNode == null && !network.manipulation.inMode){
+			savehoverNode = params.node;
+			setTimeout(function () {
+				if(curhoverNode == savehoverNode && !network.manipulation.inMode){
+					var hove_output = document.getElementById('hover-popUp');
+					document.getElementById('popover-content').value = network.body.data.nodes._data[params.node].content || '';
+					document.getElementById('label-title').innerHTML = network.body.data.nodes._data[params.node].label || '';
+
+					//获取鼠标位置函数
+					var mousePos = mousePosition(params.event);
+					var  xOffset = 30;
+					var  yOffset = 40;
+					hove_output.style.cssText='display:block;top:' + (mousePos.y - yOffset) + "px;" + "left:" + (mousePos.x + xOffset) + "px";
+				}
+				savehoverNode = null;
+			},400);
+		}
+      });
+	  
+	  //鼠标离开悬停在节点上弹出框
+	  network.on("blurNode", function (params) {
+          curhoverNode = null;
+      });
+
+	  //获取鼠标坐标
+      function mousePosition(ev){
+		ev = window.event || ev;
+		if(ev.pageX || ev.pageY){
+			return {x:ev.pageX, y:ev.pageY};
+		}
+		return {
+			x:ev.clientX + document.body.scrollLeft - document.body.clientLeft,
+			y:ev.clientY + document.body.scrollTop - document.body.clientTop
+		};
+      }
+
+      //双击节点 隐藏或者显示子节点
+      network.on("doubleClick", function (params) {
+          if ( params.nodes.length == 0 && params.edges.length ==1 && !isCtrlDown) { // 双击的是关联
+              var edgesData = network.body.data.edges._data[params.edges[0]];
+              //将from和to节点添加不需要遍历获取节点列表中
+              var _allChild = getAllChilds(network,edgesData.to,[edgesData.from, edgesData.to], 'all');
+              //移除from和to节点，不隐藏
+              _allChild.remove(edgesData.from);
+              _allChild.remove(edgesData.to);
+			  var nodes = [];
+              if(_allChild.length > 0 ){ // 存在子节点
+                  var hidden_temp = undefined || network.body.data.nodes._data[_allChild[_allChild.length-1]].hidden
+                  if( hidden_temp == false || hidden_temp == undefined){
+                      for(var i=0, len=_allChild.length;i<len;i++){
+                          nodes.push({id:_allChild[i], hidden:true});
+                      }
+                  }else{
+                      for(var j=0, len=_allChild.length;j<len;j++){
+                          nodes.push({id:_allChild[j], hidden:false});
+                      }
+                  }
+				  network.body.data.nodes.update(nodes);
+              }
+              network.editEdgeMode()
+          }
+          if ( params.nodes.length != 0 && !isCtrlDown) { // 双击的是节点
+              //编辑节点
+              network.editNode();
+          }
+      });
+    }
+    //清除模态框数据，并隐藏
+    function clearPopUp() {
+      document.getElementById('saveButton').onclick = null;
+      document.getElementById('cancelButton').onclick = null;
+    }
+    //取消编辑
+    function cancelEdit(callback) {
+      clearPopUp();
+      callback(null);
+    }
+
+    $('#nodeContentModal').on('shown.bs.modal',function(e){
+        $('#node-label').focus(); //通过ID找到对应输入框，让其获得焦点
+    });
+
+    //保存节点数据编辑
+    function saveNodeIdData(data,operation,callback) {
+        var oldNodeData = {};
+        $.extend(true,oldNodeData,data);
+		data.label = document.getElementById('node-label').value;
+		data.content = document.getElementById('node-content').value;
+		//保存用户操作数据
+        if(operation == 'Add')
+		    mu.save(operation,{nodes:[data]});
+        else if(operation == 'Edit'){
+            mu.save(operation,{undo: {nodes:[oldNodeData]},redo:{nodes:[data]}});
+        }
+		clearPopUp();
+		$('#nodeContentModal').modal('hide');
+		callback(data);
+    }
+	
+	function deleteNetworkData(data){
+		//保存用户操作数据
+		var nodes = [];
+		if(data.nodes){
+			for(var i=0, len=data.nodes.length;i<len;i++){
+				nodes.push(network.body.data.nodes._data[data.nodes[i]]);
+			}
+		}
+		var edges = [];
+		if(data.nodes){
+			for(var i=0, len=data.edges.length;i<len;i++){
+				edges.push(network.body.data.edges.get(data.edges[i]));
+			}
+		}
+		mu.save('Delete',{nodes:nodes,edges:edges});
+	}
+	
+	//初始化
+    function init() {
+        draw();
+        document.getElementById('model-name-label').value = localData.get('modelName') || '新模型'
+    }
+	
+	//帮助提示信息
+	$(function (){
+		var content = "<p>TAB键：选择节点，按TAB键可以新建节点。</p>" +
+		"<p>Ctrl+S键：保存当前视图数据。</p>" +
+		"<p>Ctrl+Z键：撤销当前操作。</p>" +
+		"<p>Ctrl+Y键：恢复前一次操作。</p>" +
+		"<p>ESC键：取消编辑模式。</p>" +
+        "<p>DELETE键：删除选中的节点或连接线。</p>" +
+        "<p>Ctrl键：按住Ctrl单击节点或连接线可以进行多选。</p>" +
+        "<p>双击节点：可以编辑节点内容。</p>" +
+        "<p>双击连接线：可以进行连接线拖动，以及收缩连接线指向方向的所有节点。</p>" +
+        "<p>点击搜索结果：可以将视图聚焦到该节点上。</p>" +
+        "<p style='color: #c9302c'>注意：</p>" +
+		"<p style='color: #c9302c'>1、目前只是将数据永久存储在浏览器缓存中。</p>" +
+		"<p style='color: #c9302c'>2、清空缓存前，建议导出数据进行保存！</p>";
+        $('#help').webuiPopover({title:"帮助",content:content,style:"inverse",width:"auto"});
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+	
+	 /*
+     *获取所有子节点
+     * network ：图形对象
+     * _thisNode ：单击的节点（父节点）
+     * _Allnodes ：用来装子节点ID的数组
+     * direction: 返回节点的方向，direction设置为字符串“from”，则仅返回父节点。
+      如果direction设置为'to'，则只返回子节点。
+      任何其他值或undefined返回父节点和子节点。
+     * */
+    function getAllChilds(network, _thisNode, _Allnodes, direction){
+        var _nodes = network.getConnectedNodes(_thisNode,direction);
+        if(_nodes.length > 0){
+            for(var i=0, len=_nodes.length;i<len;i++){
+                  if(!_Allnodes.contains(_nodes[i])){
+                    _Allnodes.push(_nodes[i]);
+                    getAllChilds(network,_nodes[i],_Allnodes, 'all');
+                  }
+            }
+        }
+        return _Allnodes
+    }
+
+	  //判断元素是否在数组内的实现代码
+	  Array.prototype.contains = function (obj) {
+        var i = this.length;
+        while (i--) {
+          if (this[i] === obj) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      //删除Array数组中的某个元素
+      Array.prototype.remove = function (val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+            }
+      };
+
+      //键盘监听按键按下(包括组合键)
+      document.onkeydown=function(event){
+            var e = window.event || event || arguments.callee.caller.arguments[0];
+            //按下Ctrl键
+            if (e && e.ctrlKey) {
+                isCtrlDown = true;
+            }
+            //按下TAB键,添加节点和关联
+            if(e && e.keyCode == 9){
+                var newId = new Date().getTime();
+				var nodes = {id:newId, label:"new", content:""};
+                network.body.data.nodes.add(nodes);
+				var Positions = network.getPositions(newId)[newId];
+				nodes.x = Positions.x;
+				nodes.y = Positions.y;
+				network.body.data.nodes.update(nodes);
+				var edges = null;
+                if(curSelectNode){
+					edges = [{id: new Date().getTime(), from: curSelectNode, to: newId}];
+					network.body.data.edges.add(edges);
+                }
+				//保存用户操作数据
+				mu.save('Add',{nodes:[nodes], edges:edges});
+            }
+            //按下DELETE键
+            if (e && e.keyCode == 46) {
+                network.deleteSelected();
+            }
+            //按下ESC键,取消编辑模式
+            if(e && e.keyCode==27){ // 按 Esc
+                //判断是否为添加节点，添加连接线，编辑连接线
+                if(/(addNode|addEdge|editEdge)+/.test(network.manipulation.inMode)){
+                    network.unselectAll();        //取消所有选择
+                    network.disableEditMode();    //禁止编辑模式
+                    network.enableEditMode();     //开启编辑模式
+
+                }
+            }
+            //按下Ctrl+Z键 撤销操作
+            if (e && e.ctrlKey && e.keyCode == 90) {
+				mu.undo();
+            }
+			//按下Ctrl+Y键 恢复操作
+            if (e && e.ctrlKey && e.keyCode == 89) {
+				mu.redo();
+            }
+            //按下Ctrl+S键
+            if (e && e.ctrlKey && e.keyCode == 83) {
+                /*延迟，兼容FF浏览器  */
+                setTimeout(function(){
+                  saveNetwork();
+               },1);
+                return false;
+            }
+         };
+      //键盘监听按键松开(包括组合键)
+      document.onkeyup=function(event){
+            var e = event || window.event || arguments.callee.caller.arguments[0];
+            if (!e.ctrlKey) {
+                isCtrlDown = false;
+            }
+      };
+      //节点全部高亮显示
+      function allHighlight(nodes) {
+//		var date1=new Date();  //开始时间
+		var nodes = [];
+		//先将所有节点置为蓝色
+		for(var i=0, len=network.body.nodeIndices.length;i<len;i++){
+			nodes.push({id:network.body.nodeIndices[i], hidden:false, group: 0});
+		}
+		network.body.data.nodes.update(nodes);
+//		var date2=new Date();    //结束时间
+//		console.log((date2.getTime()-date1.getTime())/1000);
+		isHighlight = false;
+      }
+      //选择节点时高亮显示关系
+      function selectHighLight(nodeId) {
+        if ( nodeId != undefined && !isCtrlDown) { // 选择的是节点
+			curSelectNode = nodeId;
+			var _allChild = network.getConnectedNodes(curSelectNode);
+			var nodes = [];
+			//先将所有节点置为灰色
+			for(var i=0, len=network.body.nodeIndices.length;i<len;i++){
+				nodes.push({id:network.body.nodeIndices[i], group: 'source'});
+			}
+			network.body.data.nodes.update(nodes);
+			isHighlight = true;
+			nodes = [];
+			//再将选择的节点置为蓝色
+			for(var i=0, len=_allChild.length;i<len;i++){
+				nodes.push({id:_allChild[i], group: 0});
+			}
+			//单击的节点不能被隐藏
+			nodes.push({id:curSelectNode, group: 0});
+			network.body.data.nodes.update(nodes);
+        }
+      }
+    //导出网络图数据
+    function exportNetwork() {
+        var exportValue = JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','content','x', 'y']}), edges:network.body.data.edges.get()}, null, 2)
+        var blob = new Blob([exportValue], {type: "" });
+        saveAs(
+            blob,
+            document.getElementById('model-name-label').value + ' ' + new Date().Format("yyyy-MM-dd hh:mm:ss") + ".json"
+        );
+    }
+    //导入网络图
+    function importNetwork(files) {
+        if (files.length) {
+            var file = files[0];
+            var reader = new FileReader();
+            if (/json+/.test(file.name)){
+                //将文件读取为文本
+                reader.readAsText(file);
+                reader.onload = function(evt){
+                    //console.log(reader.result);
+                    var test = document.getElementById('import_button');
+                    test.value = '';
+                    var inputData = JSON.parse(reader.result);
+                    setThedata(inputData.nodes, inputData.edges);
+                    document.getElementById('model-name-label').value = file.name.split('.')[0];
+                }
+            }
+            else{
+                toastr.info('请选择json后缀文件！');
+            }
+        }
+    }
+
+    //是否开启自动保存网络数据功能
+    function isAutoSaveData(){
+      var isOpen = document.getElementById("autoSave_checkbox");
+      if(isOpen.checked){
+        timerVar=setInterval(saveNetwork,10000);
+      }else {
+        clearInterval(timerVar);
+      }
+
+    }
+
+    //保存网络图数据
+    function saveNetwork() {
+        var dataStatus = localData.set('networkData', JSON.stringify({nodes:network.body.data.nodes.get({fields: ['id', 'label','content','x', 'y']}), edges:network.body.data.edges.get()}, null, 2));
+        var nameStatus = localData.set('modelName', document.getElementById('model-name-label').value);
+        if (dataStatus && nameStatus){
+            toastr.success('保存成功');
+        }
+        else {
+            toastr.error('保存失败');
+        }
+    }
+
+    //搜索网络图数据
+    function searchNetworkData() {
+      var Keyword =  document.getElementById("node-search-label").value;
+      if(Keyword != ""){
+        var searchData = []
+        network.body.data.nodes.map(function (node_data){//node_data.content.search(Keyword) != -1
+            if((node_data.label ? node_data.label.search(Keyword) != -1 : false) || (node_data.content ? node_data.content.search(Keyword) != -1 : false)){
+              searchData.push({id: node_data.id, label: node_data.label, content:node_data.content});
+            }
+        });
+		var searchDataDiv = document.getElementById("searchDataDiv");
+		searchDataDiv.innerHTML = "";
+		var h5Node=document.createElement("h5"); //获得对象
+		h5Node.innerHTML = '正在搜索，请耐心等待...';
+		searchDataDiv.appendChild(h5Node);
+        if (searchData.length != 0){
+            var rows = null; //列表行数
+            var cols = 15;   //列表列数
+            //获取需要创建的行数
+            if(searchData.length < cols){
+                rows = 1
+            }
+            else if(searchData.length%cols != 0){
+              rows = parseInt(searchData.length/cols) + 1
+            }
+            else{
+                rows = searchData.length/cols
+            }
+            var curCount = 0;
+            var tableNode=document.createElement("table");//获得对象
+            tableNode.setAttribute("id","searchTable");
+            tableNode.className = 'table table-condensed table-hover table-bordered table-sm';
+            for(var x=0;x<rows;x++){
+                var trNode=tableNode.insertRow();
+                for(var y=0;y<cols;y++){
+                    if(curCount == searchData.length){
+                        break;
+                    }
+                    var tdNode=trNode.insertCell();
+                    tdNode.style.cursor = 'pointer';
+                    tdNode.setAttribute("data-toggle","tooltip");
+//                    tdNode.setAttribute("data-html",true);
+                    var content = searchData[curCount].content
+                    tdNode.setAttribute("title","<p align='left'>" + content.replace(/\n/g,'<br>').replace(new RegExp(Keyword, "g"),'<strong style="color: red">' + Keyword + '</strong>') + "</p>");
+                    tdNode.innerHTML=searchData[curCount].label;
+                    tdNode.onclick = focusNodeId.bind();
+                    tdNode.value = searchData[curCount].id;
+                    curCount += 1;
+                }
+            }
+            h5Node.innerHTML = '搜索结果：';
+            searchDataDiv.appendChild(tableNode); //添加到那个位置
+        }
+		else{
+            h5Node.innerHTML = '无 ' + '<span style="color: red">' + Keyword + '</span>' + ' 搜索结果';  
+		}
+		searchDataDiv.style.display = 'block';
+        $('[data-toggle="tooltip"]').tooltip({html:true, placement:'bottom'});
+      }
+    }
+
+	//清除网络图搜索结果
+    function clearSearchResult() {
+		document.getElementById("searchDataDiv").innerHTML = '';
+	}
+    //将视图锁定到节点上
+    function focusNodeId(event){
+        var options = {
+            scale: 1,
+            offset: {x:0,y:0},
+            animation: {
+              duration: 1000,
+              easingFunction: 'easeInOutQuad'
+            }
+        };
+        network.focus(event.target.value, options);
+        selectHighLight(event.target.value);
+    }
+    //设置网络图数据
+    function setThedata(nodes, edges) {
+	
+		try {
+			if(nodes){
+				//清空网络图数据
+				network.body.data.nodes.clear();
+				//添加网络图数据
+				network.body.data.nodes.add(nodes);
+			}
+			if(edges){
+				//清空网络图数据
+				network.body.data.edges.clear();
+				//添加网络图数据
+				network.body.data.edges.add(edges);
+			}
+			return true;
+		} catch (ex) {
+			return false;
+		}
+		
+        
+    }
+	
+	//清除缓存数据
+    function destoryNetworkCache() {
+		document.getElementById('confirmButton').onclick = function (){
+			$('#confirmModal').modal('show');
+			if (localData.remove('networkData')){
+				toastr.success('清除缓存成功');
+			}
+			else {
+				toastr.error('清除缓存失败');
+			}
+			$('#confirmModal').modal('hide');
+			document.getElementById('confirmButton').onclick = null;
+		};
+    }
+	
+	//清除视图数据
+    function destoryNetworkView() {
+		document.getElementById('confirmButton').onclick = function (){
+			$('#confirmModal').modal('show');
+			if (setThedata([],[])){
+				toastr.success('清除视图成功');
+			}
+			else {
+				toastr.error('清除视图失败');
+			}
+			$('#confirmModal').modal('hide');
+			document.getElementById('confirmButton').onclick = null;
+		};
+		
+    }
+
+    //阻止页面关闭，显示关闭页面确认弹出框
+    window.onbeforeunload = function(e) {
+        var e = window.event||e;
+  　　  e.returnValue=('确认离开当前页面吗？未保存的数据将会丢失！');
+    };
+
+    window.localData = {
+      hname : location.hostname ? location.hostname : 'localStatus',
+      isLocalStorage : window.localStorage ? true : false,
+      dataDom : null,
+      initDom : function() { //初始化userData
+        if (!this.dataDom) {
+          try {
+            this.dataDom = document.createElement('input'); //这里使用hidden的input
+            this.dataDom.type = 'hidden';
+            this.dataDom.style.display = "none";
+            this.dataDom.addBehavior('#default#userData'); //这是userData的语法
+            document.body.appendChild(this.dataDom);
+            var exDate = new Date();
+            exDate = exDate.getDate() + 30;
+            this.dataDom.expires = exDate.toUTCString(); //设定过期时间
+          } catch (ex) {
+            return false;
+          }
+        }
+        return true;
+      },
+      set : function(key, value) {
+        try {
+          if (this.isLocalStorage) {
+            window.localStorage.setItem(key, value);
+          } else {
+            if (this.initDom()) {
+              this.dataDom.load(this.hname);
+              this.dataDom.setAttribute(key, value);
+              this.dataDom.save(this.hname)
+            }
+          }
+          return true
+        }
+        catch(err){
+          return err
+        }
+
+      },
+      get : function(key) {
+        if (this.isLocalStorage) {
+          return window.localStorage.getItem(key);
+        } else {
+          if (this.initDom()) {
+            this.dataDom.load(this.hname);
+            return this.dataDom.getAttribute(key);
+          }
+        }
+      },
+      remove : function(key) {
+        try {
+            if (this.isLocalStorage) {
+                localStorage.removeItem(key);
+            } else {
+                if (this.initDom()) {
+                    this.dataDom.load(this.hname);
+                    this.dataDom.removeAttribute(key);
+                    this.dataDom.save(this.hname)
+                }
+            }
+            return true
+        }
+        catch(err){
+            return err
+        }
+      }
+    };
+    // 对Date的扩展，将 Date 转化为指定格式的String
+    // 月(M)、日(d)、小时(h)、分(m)、秒(s)、季度(q) 可以用 1-2 个占位符，
+    // 年(y)可以用 1-4 个占位符，毫秒(S)只能用 1 个占位符(是 1-3 位的数字)
+    // 例子：
+    // (new Date()).Format("yyyy-MM-dd hh:mm:ss.S") ==> 2006-07-02 08:09:04.423
+    // (new Date()).Format("yyyy-M-d h:m:s.S")      ==> 2006-7-2 8:9:4.18
+    Date.prototype.Format = function (fmt) { //author: meizz
+        var o = {
+            "M+": this.getMonth() + 1, //月份
+            "d+": this.getDate(), //日
+            "h+": this.getHours(), //小时
+            "m+": this.getMinutes(), //分
+            "s+": this.getSeconds(), //秒
+            "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+            "S": this.getMilliseconds() //毫秒
+        };
+        if (/(y+)/.test(fmt)) {
+            fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+        }
+        for (var k in o)
+            if (new RegExp("(" + k + ")").test(fmt))
+                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+        return fmt;
+    }
+</script>
+
+</html>
