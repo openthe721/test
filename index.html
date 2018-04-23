@@ -132,6 +132,7 @@
         </div>
         <div class="mb-3 table-responsive" id="searchDataDiv" style="display: none"></div>
     </div>
+    <div id="config"></div>
     <div id="mynetwork"></div>
 
     <!-- 节点内容模态框 -->
@@ -269,15 +270,27 @@
         },
         physics: {
             barnesHut: {
-              gravitationalConstant: -15000,
+              gravitationalConstant: -25000,
               centralGravity: 1.5,
               springConstant: 0,
               damping: 1,
               avoidOverlap: 0.5
             },
-            maxVelocity: 3,
-            minVelocity: 0.01
+            maxVelocity: 50,
+            minVelocity: 0.75
         },
+          configure: {
+              filter: function (option, path) {
+                  if (path.indexOf('physics') !== -1) {
+                      return true;
+                  }
+                  if (path.indexOf('smooth') !== -1 || option === 'smooth') {
+                      return true;
+                  }
+                  return false;
+              },
+              container: document.getElementById('config')
+          },
         manipulation: {
 			initiallyActive: true,
 			addNode: function (data, callback) {
