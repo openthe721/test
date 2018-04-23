@@ -29,8 +29,6 @@ nono.MutationJs.prototype.save = function (type, obj ) {
 				this.splice(this.index + 1);
 			this.index++;
 			this.list.push({type: type, data: obj});
-			console.log(this.index);
-			console.log(this.list[this.index].data);
 		}
     },
 
