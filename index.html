@@ -451,6 +451,8 @@
     function clearPopUp() {
       document.getElementById('saveButton').onclick = null;
       document.getElementById('cancelButton').onclick = null;
+      document.getElementById('node-label').value = '';
+      document.getElementById('node-content').value = '';
     }
     //取消编辑
     function cancelEdit(callback) {
@@ -459,7 +461,8 @@
     }
 
     $('#nodeContentModal').on('shown.bs.modal',function(e){
-        $('#node-label').focus(); //通过ID找到对应输入框，让其获得焦点
+        $('#node-label').focus();     //通过ID找到对应输入框，让其获得焦点
+        $('#node-label').select();    //选择输入框文本内容
     });
 
     //保存节点数据编辑
@@ -572,16 +575,23 @@
             //按下TAB键,添加节点和关联
             if(e && e.keyCode == 9){
                 var newId = new Date().getTime();
+//                var mousePos = mousePosition(params.event);
+//                var xOffset = 30;
+//                var yOffset = 40;
 				var nodes = {id:newId, label:"new", content:""};
                 network.body.data.nodes.add(nodes);
 				var Positions = network.getPositions(newId)[newId];
 				nodes.x = Positions.x;
 				nodes.y = Positions.y;
-				network.body.data.nodes.update(nodes);
+				//network.body.data.nodes.update(nodes);
 				var edges = null;
                 if(curSelectNode){
 					edges = [{id: new Date().getTime(), from: curSelectNode, to: newId}];
 					network.body.data.edges.add(edges);
+                    Positions = network.getPositions(curSelectNode)[curSelectNode];
+                    nodes.x = Positions.x + 10;
+				    nodes.y = Positions.y + 50;
+                    network.body.data.nodes.update(nodes);
                 }
 				//保存用户操作数据
 				mu.save('Add',{nodes:[nodes], edges:edges});
