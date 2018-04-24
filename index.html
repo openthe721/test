@@ -123,7 +123,7 @@
 			</div>
             <div  class="col-md-3 mb-3 custom-control custom-checkbox">
                 <input id="autoSave_checkbox" type="checkbox" class="custom-control-input" style="vertical-align: -35%;" onchange="isAutoSaveData()">
-                <label class="custom-control-label" style="vertical-align: -35%;" for="autoSave_checkbox">是否自动保存</label>
+                <label class="custom-control-label" style="vertical-align: -35%;" for="autoSave_checkbox" data-toggle="tooltip" title="10s保存一次">是否自动保存</label>
             </div>
 		</div>
 		
@@ -418,27 +418,7 @@
 
       //双击节点 隐藏或者显示子节点
       network.on("doubleClick", function (params) {
-          if ( params.nodes.length == 0 && params.edges.length ==1 && !isCtrlDown) { // 双击的是关联
-              var edgesData = network.body.data.edges._data[params.edges[0]];
-              //将from和to节点添加不需要遍历获取节点列表中
-              var _allChild = getAllChilds(network,edgesData.to,[edgesData.from, edgesData.to], 'all');
-              //移除from和to节点，不隐藏
-              _allChild.remove(edgesData.from);
-              _allChild.remove(edgesData.to);
-			  var nodes = [];
-              if(_allChild.length > 0 ){ // 存在子节点
-                  var hidden_temp = undefined || network.body.data.nodes._data[_allChild[_allChild.length-1]].hidden
-                  if( hidden_temp == false || hidden_temp == undefined){
-                      for(var i=0, len=_allChild.length;i<len;i++){
-                          nodes.push({id:_allChild[i], hidden:true});
-                      }
-                  }else{
-                      for(var j=0, len=_allChild.length;j<len;j++){
-                          nodes.push({id:_allChild[j], hidden:false});
-                      }
-                  }
-				  network.body.data.nodes.update(nodes);
-              }
+          if ( params.nodes.length == 0 && params.edges.length ==1 && !isCtrlDown) { // 双击的是连接线，进入连接线编辑模式
               network.editEdgeMode()
           }
           if ( params.nodes.length != 0 && !isCtrlDown) { // 双击的是节点
@@ -507,16 +487,18 @@
 	
 	//帮助提示信息
 	$(function (){
-		var content = "<p>TAB键：选择节点，按TAB键可以新建节点。</p>" +
-		"<p>Ctrl+S键：保存当前视图数据。</p>" +
-		"<p>Ctrl+Z键：撤销当前操作。</p>" +
-		"<p>Ctrl+Y键：恢复前一次操作。</p>" +
+		var content = "" +
 		"<p>ESC键：取消编辑模式。</p>" +
-        "<p>DELETE键：删除选中的节点或连接线。</p>" +
-        "<p>Ctrl键：按住Ctrl单击节点或连接线可以进行多选。</p>" +
+        "<p>Ctrl+Z键：撤销当前操作。</p>" +
+		"<p>Ctrl+Y键：恢复前一次操作。</p>" +
+        "<p>Ctrl+S键：保存当前视图数据。</p>" +
         "<p>双击节点：可以编辑节点内容。</p>" +
-        "<p>双击连接线：可以进行连接线拖动，以及收缩连接线指向方向的所有节点。</p>" +
+        "<p>DELETE键：删除选中的节点或连接线。</p>" +
+        "<p>TAB键：选择节点，按TAB键可以新建节点。</p>" +
         "<p>点击搜索结果：可以将视图聚焦到该节点上。</p>" +
+        "<p>Ctrl键：按住Ctrl单击节点或连接线可以进行多选。</p>" +
+        "<p>双击连接线：进入连接线编辑模式，进行连接线拖动。</p>" +
+        "<p>Enter键：选择节点，按下Enter键，可以收缩节点箭头指向方向的所有节点。</p>" +
         "<p style='color: #c9302c'>注意：</p>" +
 		"<p style='color: #c9302c'>1、目前只是将数据永久存储在浏览器缓存中。</p>" +
 		"<p style='color: #c9302c'>2、清空缓存前，建议导出数据进行保存！</p>";
@@ -539,7 +521,7 @@
             for(var i=0, len=_nodes.length;i<len;i++){
                   if(!_Allnodes.contains(_nodes[i])){
                     _Allnodes.push(_nodes[i]);
-                    getAllChilds(network,_nodes[i],_Allnodes, 'all');
+                    getAllChilds(network,_nodes[i],_Allnodes, 'to');
                   }
             }
         }
@@ -625,6 +607,30 @@
                   saveNetwork();
                },1);
                 return false;
+            }
+            //按下键盘上的回车键键 进行节点折叠操作
+            if (e && e.keyCode == 13) {
+                if(curSelectNode){
+                    //遍及to方向的节点
+                    var _allChild = getAllChilds(network,curSelectNode,[], 'to');
+                    //不隐藏当前选择节点
+                    _allChild.remove(curSelectNode);
+                    var nodes = [];
+                    if(_allChild.length > 0 ){ // 存在子节点
+                      var hidden_temp = undefined || network.body.data.nodes._data[_allChild[_allChild.length-1]].hidden
+                      if( hidden_temp == false || hidden_temp == undefined){
+                          for(var i=0, len=_allChild.length;i<len;i++){
+                              nodes.push({id:_allChild[i], hidden:true});
+                          }
+                      }else{
+                          for(var j=0, len=_allChild.length;j<len;j++){
+                              nodes.push({id:_allChild[j], hidden:false});
+                          }
+                      }
+                      network.body.data.nodes.update(nodes);
+                    }
+                }
+
             }
          };
       //键盘监听按键松开(包括组合键)
