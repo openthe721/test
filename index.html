@@ -69,23 +69,13 @@
     <br>		
 	<div class="container-fluid">
         <!--鼠标悬浮节点弹出框-->
-        <!-- <textarea class="popUp" id="hover-popUp"  rows="4" cols="50" data-toggle="popover" data-trigger="hover" data-content="一些内容"></textarea> -->
-		<!-- <div class="webui-popover bottom in" id="hover-popUp" style="display: node;"> -->
-		   <!-- <div class="arrow"></div> -->
-		   <!-- <div class="webui-popover-inner"> -->
-			<!-- <button type="button" class="close" data-dismiss="modal">&times;</button> -->
-			<!-- <h2 id="label-title" class="webui-popover-title"></h2> -->
-			<!-- <div class="webui-popover-content">  -->
-				<!-- <textarea class="popUp" id="popover-content"  rows="5" cols="50"></textarea> -->
-			<!-- </div> -->
-		   <!-- </div> -->
-		  <!-- </div> -->
 		  <div class="webui-popover webui-popover-inverse right" id="hover-popUp" style="display: none;opacity: 0.9;position:absolute;">
 		   <div class="webui-arrow" style="top: 38.5px;"></div>
 		   <div class="webui-popover-inner">
+             <a href="#" class="close" style="color: white;font-size: 25px;" onclick="$('#hover-popUp').hide()"></a>
 			<h3 id="label-title" class="webui-popover-title">label</h3>
 			<div class="webui-popover-content">
-			 <textarea class="popUp" id="popover-content"  rows="4" cols="50" disabled></textarea>
+			 <textarea class="popUp" id="popover-content" rows="4" cols="50" disabled></textarea>
 			</div>
 		   </div>
 		  </div>
